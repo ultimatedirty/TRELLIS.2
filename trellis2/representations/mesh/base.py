@@ -1,8 +1,15 @@
 from typing import *
 import torch
 from ..voxel import Voxel
-import cumesh
-from flex_gemm.ops.grid_sample import grid_sample_3d
+try:
+    import cumesh
+except (ImportError, RuntimeError):
+    cumesh = None
+try:
+    from flex_gemm.ops.grid_sample import grid_sample_3d
+except (ImportError, RuntimeError):
+    def grid_sample_3d(*args, **kwargs):
+        raise RuntimeError("flex_gemm requires CUDA")
 
 
 class Mesh:
@@ -33,8 +40,9 @@ class Mesh:
         return self.to('cpu')
     
     def fill_holes(self, max_hole_perimeter=3e-2):
-        vertices = self.vertices.cuda()
-        faces = self.faces.cuda()
+        return  # Skip — Metal cumesh segfaults on large decode meshes
+        vertices = self.vertices.to(self.device)
+        faces = self.faces.to(self.device)
         
         mesh = cumesh.CuMesh()
         mesh.init(vertices, faces)
@@ -57,8 +65,9 @@ class Mesh:
         self.faces = new_faces.to(self.device)
         
     def remove_faces(self, face_mask: torch.Tensor):
-        vertices = self.vertices.cuda()
-        faces = self.faces.cuda()
+        return
+        vertices = self.vertices.to(self.device)
+        faces = self.faces.to(self.device)
         
         mesh = cumesh.CuMesh()
         mesh.init(vertices, faces)
@@ -69,8 +78,9 @@ class Mesh:
         self.faces = new_faces.to(self.device)
         
     def simplify(self, target=1000000, verbose: bool=False, options: dict={}):
-        vertices = self.vertices.cuda()
-        faces = self.faces.cuda()
+        return
+        vertices = self.vertices.to(self.device)
+        faces = self.faces.to(self.device)
         
         mesh = cumesh.CuMesh()
         mesh.init(vertices, faces)

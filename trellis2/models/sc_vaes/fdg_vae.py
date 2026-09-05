@@ -17,7 +17,22 @@ from .sparse_unet_vae import (
     SparseUnetVaeDecoder,
 )
 from ...representations import Mesh
-from o_voxel.convert import flexible_dual_grid_to_mesh
+# Force pure-Python mesh extraction — real o_voxel.convert (CUDA or Metal port)
+# segfaults on decoder output. Import our stub version explicitly.
+# stubs/ is appended (not prepended) so a pip-installed o_voxel still wins
+# for other submodules like o_voxel.postprocess.
+import sys, os
+_stubs = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'stubs')
+if _stubs not in sys.path:
+    sys.path.append(_stubs)
+try:
+    from o_voxel_override_convert import flexible_dual_grid_to_mesh
+except ImportError:
+    try:
+        from o_voxel.convert import flexible_dual_grid_to_mesh
+    except (ImportError, RuntimeError):
+        def flexible_dual_grid_to_mesh(*args, **kwargs):
+            raise RuntimeError("flexible_dual_grid_to_mesh unavailable")
 
 
 class FlexiDualGridVaeEncoder(SparseUnetVaeEncoder):
